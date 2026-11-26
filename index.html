@@ -211,7 +211,7 @@ $('ans').addEventListener('input', () => {
   if (v !== '' && Number(v) === G.cur.ans) { G.score++; $('score').textContent = String(G.score); next(); }
 });
 $('ans').addEventListener('keydown', e => {
-  if (e.key !== 'Enter' || !G || G.auto) return;
+  if ((e.key !== 'Enter' && e.key !== ' ') || !G || G.auto) return;
   e.preventDefault();
   const v = $('ans').value.trim();
   if (v === '') return;
