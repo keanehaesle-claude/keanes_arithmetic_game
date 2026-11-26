@@ -79,7 +79,7 @@ tr.game{cursor:pointer}tr.game:hover,tr.game:focus{background:#eee;outline:none}
 
 <!-- GAME (Zetamac's #game markup) -->
 <div id="game" class="view">
-  <span class="left">Seconds left: <span id="secs">120</span></span>
+  <span class="left"><button id="quitBtn" type="button">Back</button>&nbsp;&nbsp;Seconds left: <span id="secs">120</span></span>
   <span class="correct">Score: <span id="score">0</span></span>
   <div class="banner"><span id="prob"></span> = <input id="ans" type="text" autocomplete="off" inputmode="numeric"></div>
 </div>
@@ -279,6 +279,7 @@ $('histList').addEventListener('keydown', e => { if (e.key === 'Enter') { const 
 $('opts').addEventListener('submit', e => { e.preventDefault(); start(); });
 link('againBtn', start);
 $('histBtn').addEventListener('click', openHistory);
+$('quitBtn').addEventListener('click', () => { clearInterval(tick); tick = null; G = null; show('home'); });
 link('backHist', () => show('history'));
 for (const id of ['homeBtn1', 'homeBtn2', 'homeBtn3']) link(id, () => show('home'));
 syncStart();
