@@ -1,0 +1,290 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keane's Arithmetic Game</title>
+<style>
+/* Mirrors Zetamac's app.css: 14px Helvetica Neue body, 440px #ddd #welcome box,
+   absolutely positioned "Seconds left" / "Score", 36px #ddd banner 240px down. */
+:root{color-scheme:light}
+html,body{margin:0;padding:0}
+body{font:14px "Helvetica Neue",Arial,Helvetica,sans-serif;background:#fff;color:#000}
+a,a:link,a:visited,a:hover,a:active{color:#0044cc}
+.view{display:none}.view.on{display:block}
+
+#welcome{width:440px;max-width:calc(100% - 40px);margin:0 auto;padding:20px;background:#dddddd}
+#welcome input[type=text]{width:34px;margin:0 2px;text-align:right}
+#welcome input[type=submit]{float:right}
+#welcome form::after{content:"";display:table;clear:both}
+dd{margin-bottom:.5em}
+table th{text-align:left}
+#histBtn{position:absolute;top:20px;right:20px}
+
+#game{min-height:300px;position:relative}#game.on{display:flow-root}
+#game span.left,#game span.correct{font-size:18px;position:absolute;top:20px}
+#game span.left{left:20px}
+#game span.correct{right:20px}
+#game .banner{text-align:center;margin-top:240px;padding:10px 0;line-height:54px;font-size:36px;background:#dddddd}
+#game .banner input{font-size:36px;font-family:inherit;width:180px}
+
+.banner{text-align:center;padding:10px 0;background:#dddddd}
+.banner.wide{height:auto;margin-top:60px}
+.banner p{font-size:14px;line-height:24px;margin:0}
+.banner p.correct{font-size:36px;line-height:56px}
+.page{max-width:640px;margin:0 auto;padding:20px}
+.review{border-collapse:collapse;margin:20px auto 0;min-width:min(480px,100%)}
+.review th,.review td{padding:4px 12px;border-bottom:1px solid #ddd}
+.review td.n,.review th.n{text-align:right}
+.ok{color:#11701c}.bad{color:#b3121b}
+tr.game{cursor:pointer}tr.game:hover,tr.game:focus{background:#eee;outline:none}
+</style>
+</head>
+<body>
+
+<!-- HOME (Zetamac's #welcome markup) -->
+<div id="home" class="view on">
+  <button id="histBtn" type="button">History</button>
+  <div id="welcome">
+    <h1>Keane's Arithmetic Game</h1>
+    <form class="game-options" id="opts">
+      <dl>
+        <dt><label><input checked id="c-add" type="checkbox"> Addition</label></dt>
+        <dd>Range: (<input type="text" id="add-a1" value="2"> to <input type="text" id="add-a2" value="100">) + (<input type="text" id="add-b1" value="2"> to <input type="text" id="add-b2" value="100">)</dd>
+
+        <dt><label><input checked id="c-sub" type="checkbox"> Subtraction</label></dt>
+        <dd>Addition problems in reverse.<br>Range: (<input type="text" id="sub-a1" value="2"> to <input type="text" id="sub-a2" value="100">) + (<input type="text" id="sub-b1" value="2"> to <input type="text" id="sub-b2" value="100">)</dd>
+
+        <dt><label><input checked id="c-mul" type="checkbox"> Multiplication</label></dt>
+        <dd>Range: (<input type="text" id="mul-a1" value="2"> to <input type="text" id="mul-a2" value="12">) × (<input type="text" id="mul-b1" value="2"> to <input type="text" id="mul-b2" value="100">)</dd>
+
+        <dt><label><input checked id="c-div" type="checkbox"> Division</label></dt>
+        <dd>Multiplication problems in reverse.<br>Range: (<input type="text" id="div-a1" value="2"> to <input type="text" id="div-a2" value="12">) × (<input type="text" id="div-b1" value="2"> to <input type="text" id="div-b2" value="100">)</dd>
+
+        <dt><label><input checked id="c-auto" type="checkbox"> Automatic pass</label></dt>
+        <dd>Moves on as soon as the answer is right. Unchecked: Enter submits, +1 correct / −1 incorrect, and the game is saved to history.</dd>
+      </dl>
+      <p>Duration:
+        <select id="dur">
+          <option value="30">30 seconds</option>
+          <option value="60">60 seconds</option>
+          <option selected value="120">120 seconds</option>
+          <option value="300">300 seconds</option>
+          <option value="600">600 seconds</option>
+        </select>
+      </p>
+      <input type="submit" id="startBtn" value="Start">
+    </form>
+  </div>
+</div>
+
+<!-- GAME (Zetamac's #game markup) -->
+<div id="game" class="view">
+  <span class="left">Seconds left: <span id="secs">120</span></span>
+  <span class="correct">Score: <span id="score">0</span></span>
+  <div class="banner"><span id="prob"></span> = <input id="ans" type="text" autocomplete="off" inputmode="numeric"></div>
+</div>
+
+<!-- END -->
+<div id="end" class="view">
+  <div class="banner wide">
+    <p class="correct" id="endScore"></p>
+    <p id="endCounts"></p>
+    <p id="endSave"></p>
+    <p><a href="#" id="againBtn">New game</a> &nbsp;·&nbsp; <a href="#" id="homeBtn1">Return to home</a></p>
+  </div>
+  <div class="page" id="endReview"></div>
+</div>
+
+<!-- HISTORY -->
+<div id="history" class="view">
+  <div class="page">
+    <h1>History</h1>
+    <p><a href="#" id="homeBtn2">Return to home</a></p>
+    <div id="histList"></div>
+  </div>
+</div>
+
+<!-- HISTORY DETAIL -->
+<div id="detail" class="view">
+  <div class="banner wide">
+    <p class="correct" id="detScore"></p>
+    <p id="detCounts"></p>
+    <p><a href="#" id="backHist">Back to history</a> &nbsp;·&nbsp; <a href="#" id="homeBtn3">Return to home</a></p>
+  </div>
+  <div class="page" id="detReview"></div>
+</div>
+
+<script>
+{
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const show = id => { for (const v of document.querySelectorAll('.view')) v.classList.toggle('on', v.id === id); };
+const rint = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+const link = (id, fn) => $(id).addEventListener('click', e => { e.preventDefault(); fn(); });
+
+// ---------- storage: Claude per-account store when hosted on Claude, else this browser ----------
+const LS_KEY = 'kag-history';
+let storeP = null;
+function getStore() {
+  if (!storeP) storeP = (async () => {
+    try {
+      if (!window.claude || !window.claude.use) return null;
+      const timeout = new Promise(r => setTimeout(() => r(null), 10000));
+      const db = await Promise.race([window.claude.use('db'), timeout]);
+      const user = await Promise.race([window.claude.use('user'), timeout]);
+      if (!db || !user) return null;
+      const uid = await user.id();
+      return uid ? db.collection('data/users/' + uid) : null;
+    } catch (e) { return null; }
+  })();
+  return storeP;
+}
+function lsRead() { try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; } }
+function lsWrite(arr) { try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); return true; } catch (e) { return false; } }
+async function saveGame(g) {
+  const col = await getStore();
+  if (col) { try { await col.doc(g.id).set(g); return true; } catch (e) {} }
+  const arr = lsRead(); arr.push(g); return lsWrite(arr);
+}
+async function loadGames() {
+  const col = await getStore();
+  let games = [];
+  if (col) { try { games = (await col.orderBy('ts', 'desc').limit(1000).get()).docs.map(d => d.data()); } catch (e) {} }
+  const seen = new Set(games.map(g => g.id));
+  for (const g of lsRead()) if (!seen.has(g.id)) games.push(g);
+  return games.sort((a, b) => b.ts - a.ts);
+}
+
+// ---------- settings ----------
+function range(op, which) {
+  let lo = parseInt($(op + '-' + which + '1').value, 10), hi = parseInt($(op + '-' + which + '2').value, 10);
+  if (!Number.isFinite(lo)) lo = 2;
+  if (!Number.isFinite(hi)) hi = lo;
+  return lo <= hi ? [lo, hi] : [hi, lo];
+}
+const OPS = ['add', 'sub', 'mul', 'div'];
+const enabledOps = () => OPS.filter(o => $('c-' + o).checked);
+function syncStart() { $('startBtn').disabled = enabledOps().length === 0; }
+for (const o of OPS) $('c-' + o).addEventListener('change', syncStart);
+
+function makeProblem(cfg) {
+  const op = cfg.ops[Math.floor(Math.random() * cfg.ops.length)];
+  const a = rint(...cfg.r[op].a), b = rint(...cfg.r[op].b);
+  if (op === 'add') return { q: a + ' + ' + b, ans: a + b };
+  if (op === 'sub') return { q: (a + b) + ' – ' + a, ans: b };
+  if (op === 'mul') return { q: a + ' × ' + b, ans: a * b };
+  if (a === 0) return makeProblem(cfg);
+  return { q: (a * b) + ' ÷ ' + a, ans: b };
+}
+
+// ---------- game ----------
+let G = null, tick = null;
+function start() {
+  const ops = enabledOps();
+  if (!ops.length) return;
+  const r = {};
+  for (const o of OPS) r[o] = { a: range(o, 'a'), b: range(o, 'b') };
+  const dur = parseInt($('dur').value, 10);
+  G = { cfg: { ops, r }, auto: $('c-auto').checked, dur, score: 0, log: [], cur: null, endAt: performance.now() + dur * 1000 };
+  $('score').textContent = '0';
+  $('secs').textContent = String(dur);
+  next();
+  show('game');
+  $('ans').focus();
+  clearInterval(tick);
+  tick = setInterval(() => {
+    const left = Math.max(0, Math.ceil((G.endAt - performance.now()) / 1000));
+    $('secs').textContent = String(left);
+    if (left <= 0) finish();
+  }, 100);
+}
+function next() {
+  let p;
+  do { p = makeProblem(G.cfg); } while (G.cur && p.q === G.cur.q);
+  G.cur = p;
+  $('prob').textContent = p.q;
+  $('ans').value = '';
+}
+$('ans').addEventListener('input', () => {
+  if (!G || !G.auto) return;
+  const v = $('ans').value.trim();
+  if (v !== '' && Number(v) === G.cur.ans) { G.score++; $('score').textContent = String(G.score); next(); }
+});
+$('ans').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || !G || G.auto) return;
+  e.preventDefault();
+  const v = $('ans').value.trim();
+  if (v === '') return;
+  const ok = Number(v) === G.cur.ans;
+  G.log.push({ q: G.cur.q, a: G.cur.ans, g: v, ok });
+  G.score += ok ? 1 : -1;
+  $('score').textContent = String(G.score);
+  next();
+});
+
+function reviewTable(log) {
+  if (!log.length) return '<p style="text-align:center">No questions answered.</p>';
+  return '<table class="review"><thead><tr><th>#</th><th>Question</th><th class="n">Your answer</th><th class="n">Correct</th><th></th></tr></thead><tbody>' +
+    log.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(x.q)}</td><td class="n">${esc(x.g)}</td><td class="n">${esc(x.a)}</td><td class="${x.ok ? 'ok' : 'bad'}">${x.ok ? '✓' : '✗'}</td></tr>`).join('') +
+    '</tbody></table>';
+}
+const counts = log => { const c = log.filter(x => x.ok).length; return `Correct: ${c} · Incorrect: ${log.length - c}`; };
+
+async function finish() {
+  clearInterval(tick); tick = null;
+  if (!G) return;
+  const g = G; G = null;
+  $('ans').blur();
+  if (g.auto) {
+    $('endScore').textContent = 'Score: ' + g.score;
+    $('endCounts').textContent = ''; $('endSave').textContent = ''; $('endReview').innerHTML = '';
+    show('end');
+    return;
+  }
+  const max = g.log.length;
+  $('endScore').textContent = `Score: ${g.score} / ${max}`;
+  $('endCounts').textContent = counts(g.log);
+  $('endSave').textContent = 'Saving to history…';
+  $('endReview').innerHTML = reviewTable(g.log);
+  show('end');
+  const rec = { id: 'g' + Date.now() + Math.random().toString(36).slice(2, 6), ts: Date.now(), dur: g.dur, ops: g.cfg.ops, score: g.score, max, log: g.log };
+  $('endSave').textContent = (await saveGame(rec)) ? 'Saved to history.' : 'Could not save this game to history.';
+}
+
+// ---------- history ----------
+let games = [];
+const OPNAME = { add: '+', sub: '–', mul: '×', div: '÷' };
+const fmtDate = ts => new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+async function openHistory() {
+  show('history');
+  $('histList').innerHTML = '<p>Loading…</p>';
+  games = await loadGames();
+  if (!games.length) { $('histList').innerHTML = '<p>No games yet. Games played with Automatic pass unchecked appear here.</p>'; return; }
+  $('histList').innerHTML = '<table class="review" style="margin:0"><thead><tr><th>Date</th><th>Operations</th><th class="n">Duration</th><th class="n">Score</th></tr></thead><tbody>' +
+    games.map((g, i) => `<tr class="game" tabindex="0" data-i="${i}"><td>${esc(fmtDate(g.ts))}</td><td>${esc((g.ops || []).map(o => OPNAME[o] || '').join(' '))}</td><td class="n">${esc(g.dur)} s</td><td class="n">${esc(g.score)} / ${esc(g.max)}</td></tr>`).join('') +
+    '</tbody></table>';
+}
+function openDetail(i) {
+  const g = games[i]; if (!g) return;
+  const log = Array.isArray(g.log) ? g.log : [];
+  $('detScore').textContent = `Score: ${g.score} / ${g.max}`;
+  $('detCounts').textContent = `${fmtDate(g.ts)} · ${g.dur} seconds · ` + counts(log);
+  $('detReview').innerHTML = reviewTable(log);
+  show('detail');
+}
+$('histList').addEventListener('click', e => { const tr = e.target.closest('tr.game'); if (tr) openDetail(+tr.dataset.i); });
+$('histList').addEventListener('keydown', e => { if (e.key === 'Enter') { const tr = e.target.closest('tr.game'); if (tr) openDetail(+tr.dataset.i); } });
+
+// ---------- navigation ----------
+$('opts').addEventListener('submit', e => { e.preventDefault(); start(); });
+link('againBtn', start);
+$('histBtn').addEventListener('click', openHistory);
+link('backHist', () => show('history'));
+for (const id of ['homeBtn1', 'homeBtn2', 'homeBtn3']) link(id, () => show('home'));
+syncStart();
+getStore();
+}
+</script>
+</body>
+</html>
