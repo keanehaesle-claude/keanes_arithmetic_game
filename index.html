@@ -18,6 +18,10 @@ a,a:link,a:visited,a:hover,a:active{color:#0044cc}
 #welcome input[type=submit]{float:right}
 #welcome form::after{content:"";display:table;clear:both}
 dd{margin-bottom:.5em}
+.modes{display:flex;align-items:center;gap:8px;margin:14px 0}
+.modeBtn{width:44px;height:44px;padding:0;display:grid;place-items:center;background:#fff;color:#555;border:1px solid #999;border-radius:6px;cursor:pointer}
+.modeBtn[aria-pressed=true]{background:#d6e3ff;color:#0044cc;border:2px solid #0044cc}
+.modeBtn:focus-visible{outline:2px solid #0044cc;outline-offset:2px}
 table th{text-align:left}
 #histBtn{position:absolute;top:20px;right:20px}
 
@@ -62,12 +66,15 @@ tr.game{cursor:pointer}tr.game:hover,tr.game:focus{background:#eee;outline:none}
         <dd>Multiplication problems in reverse.<br>Range: (<input type="text" id="div-a1" value="2"> to <input type="text" id="div-a2" value="12">) × (<input type="text" id="div-b1" value="2"> to <input type="text" id="div-b2" value="100">)</dd>
 
       </dl>
-      <p>Game mode:
-        <select id="mode">
-          <option value="time">Time</option>
-          <option selected value="questions">Questions</option>
-        </select>
-      </p>
+      <div class="modes">Game mode:
+        <input type="hidden" id="mode" value="questions">
+        <button type="button" class="modeBtn" data-mode="questions" aria-pressed="true" aria-label="Questions" title="Questions">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8.5 9a3.5 3.5 0 1 1 5 3.2c-.9.4-1.5 1.2-1.5 2.2V15"/><circle cx="12" cy="19" r="0.6" fill="currentColor"/></svg>
+        </button>
+        <button type="button" class="modeBtn" data-mode="time" aria-pressed="false" aria-label="Time" title="Time">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+        </button>
+      </div>
       <p id="nqRow">Number of questions:
         <select id="nq">
           <option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="40">40</option><option value="50">50</option>
@@ -316,7 +323,11 @@ $('quitBtn').addEventListener('click', () => { clearInterval(tick); tick = null;
 link('backHist', () => show('history'));
 for (const id of ['homeBtn1', 'homeBtn2', 'homeBtn3']) link(id, () => show('home'));
 function syncMode() { const q = $('mode').value === 'questions'; $('nqRow').hidden = !q; $('durRow').hidden = q; }
-$('mode').addEventListener('change', syncMode);
+for (const btn of document.querySelectorAll('.modeBtn')) btn.addEventListener('click', () => {
+  $('mode').value = btn.dataset.mode;
+  for (const b of document.querySelectorAll('.modeBtn')) b.setAttribute('aria-pressed', String(b === btn));
+  syncMode();
+});
 syncMode();
 syncStart();
 getStore();
