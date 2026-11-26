@@ -61,9 +61,20 @@ tr.game{cursor:pointer}tr.game:hover,tr.game:focus{background:#eee;outline:none}
         <dt><label><input checked id="c-div" type="checkbox"> Division</label></dt>
         <dd>Multiplication problems in reverse.<br>Range: (<input type="text" id="div-a1" value="2"> to <input type="text" id="div-a2" value="12">) × (<input type="text" id="div-b1" value="2"> to <input type="text" id="div-b2" value="100">)</dd>
 
-        <dt><label><input checked id="c-auto" type="checkbox"> Automatic pass</label></dt>
       </dl>
-      <p>Duration:
+      <p>Game mode:
+        <select id="mode">
+          <option value="time">Time</option>
+          <option selected value="questions">Questions</option>
+        </select>
+      </p>
+      <p id="nqRow">Number of questions:
+        <select id="nq">
+          <option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="40">40</option><option value="50">50</option>
+          <option value="60">60</option><option value="70">70</option><option value="80">80</option><option value="90">90</option><option selected value="100">100</option>
+        </select>
+      </p>
+      <p id="durRow" hidden>Duration:
         <select id="dur">
           <option value="30">30 seconds</option>
           <option value="60">60 seconds</option>
@@ -72,6 +83,7 @@ tr.game{cursor:pointer}tr.game:hover,tr.game:focus{background:#eee;outline:none}
           <option value="600">600 seconds</option>
         </select>
       </p>
+      <p><label><input id="c-auto" type="checkbox"> Automatic pass</label></p>
       <input type="submit" id="startBtn" value="Start">
     </form>
   </div>
@@ -79,8 +91,9 @@ tr.game{cursor:pointer}tr.game:hover,tr.game:focus{background:#eee;outline:none}
 
 <!-- GAME (Zetamac's #game markup) -->
 <div id="game" class="view">
-  <span class="left"><button id="quitBtn" type="button">Back</button>&nbsp;&nbsp;Seconds left: <span id="secs">120</span></span>
+  <span class="left"><button id="quitBtn" type="button">Back</button>&nbsp;&nbsp;<span id="leftLabel">Seconds left</span>: <span id="secs">120</span></span>
   <span class="correct" id="scoreBox">Score: <span id="score">0</span></span>
+  <span class="correct" id="timeBox" hidden>Time: <span id="elapsed">0.0</span></span>
   <div class="banner"><span id="prob"></span> = <input id="ans" type="text" autocomplete="off" inputmode="numeric"></div>
 </div>
 
@@ -184,20 +197,36 @@ function start() {
   if (!ops.length) return;
   const r = {};
   for (const o of OPS) r[o] = { a: range(o, 'a'), b: range(o, 'b') };
-  const dur = parseInt($('dur').value, 10);
-  G = { cfg: { ops, r }, auto: $('c-auto').checked, dur, score: 0, log: [], cur: null, endAt: performance.now() + dur * 1000 };
+  const mode = $('mode').value;
+  const dur = parseInt($('dur').value, 10), nq = parseInt($('nq').value, 10);
+  const t0 = performance.now();
+  G = { cfg: { ops, r }, mode, auto: $('c-auto').checked, dur, nq, done: 0, score: 0, log: [], cur: null, t0, endAt: t0 + dur * 1000 };
   $('score').textContent = '0';
-  $('scoreBox').style.display = G.auto ? '' : 'none';
-  $('secs').textContent = String(dur);
+  $('scoreBox').hidden = mode !== 'time' || !G.auto;
+  $('timeBox').hidden = mode !== 'questions';
+  $('leftLabel').textContent = mode === 'time' ? 'Seconds left' : 'Questions left';
+  $('secs').textContent = String(mode === 'time' ? dur : nq);
+  $('elapsed').textContent = '0.0';
   next();
   show('game');
   $('ans').focus();
   clearInterval(tick);
   tick = setInterval(() => {
+    if (!G) return;
+    if (G.mode === 'questions') { $('elapsed').textContent = ((performance.now() - G.t0) / 1000).toFixed(1); return; }
     const left = Math.max(0, Math.ceil((G.endAt - performance.now()) / 1000));
     $('secs').textContent = String(left);
     if (left <= 0) finish();
   }, 100);
+}
+// called after each answered question; in Questions mode ends the game at the target count
+function advance() {
+  G.done++;
+  if (G.mode === 'questions') {
+    $('secs').textContent = String(G.nq - G.done);
+    if (G.done >= G.nq) { G.elapsed = (performance.now() - G.t0) / 1000; finish(); return; }
+  }
+  next();
 }
 function next() {
   let p;
@@ -209,7 +238,7 @@ function next() {
 $('ans').addEventListener('input', () => {
   if (!G || !G.auto) return;
   const v = $('ans').value.trim();
-  if (v !== '' && Number(v) === G.cur.ans) { G.score++; $('score').textContent = String(G.score); next(); }
+  if (v !== '' && Number(v) === G.cur.ans) { G.score++; $('score').textContent = String(G.score); advance(); }
 });
 $('ans').addEventListener('keydown', e => {
   if ((e.key !== 'Enter' && e.key !== ' ') || !G || G.auto) return;
@@ -220,7 +249,7 @@ $('ans').addEventListener('keydown', e => {
   G.log.push({ q: G.cur.q, a: G.cur.ans, g: v, ok });
   G.score += ok ? 1 : -1;
   $('score').textContent = String(G.score);
-  next();
+  advance();
 });
 
 function reviewTable(log) {
@@ -236,40 +265,43 @@ async function finish() {
   if (!G) return;
   const g = G; G = null;
   $('ans').blur();
+  const qm = g.mode === 'questions';
+  const tstr = qm ? `Time: ${g.elapsed.toFixed(1)} s` : '';
   if (g.auto) {
-    $('endScore').textContent = 'Score: ' + g.score;
-    $('endCounts').textContent = ''; $('endSave').textContent = ''; $('endReview').innerHTML = '';
+    $('endScore').textContent = qm ? tstr : 'Score: ' + g.score;
+    $('endCounts').textContent = qm ? `${g.nq} questions` : ''; $('endSave').textContent = ''; $('endReview').innerHTML = '';
     show('end');
     return;
   }
   const max = g.log.length;
-  $('endScore').textContent = `Score: ${g.score} / ${max}`;
-  $('endCounts').textContent = counts(g.log);
+  $('endScore').textContent = qm ? tstr : `Score: ${g.score} / ${max}`;
+  $('endCounts').textContent = (qm ? `Score: ${g.score} / ${max} · ` : '') + counts(g.log);
   $('endSave').textContent = 'Saving to history…';
   $('endReview').innerHTML = reviewTable(g.log);
   show('end');
-  const rec = { id: 'g' + Date.now() + Math.random().toString(36).slice(2, 6), ts: Date.now(), dur: g.dur, ops: g.cfg.ops, score: g.score, max, log: g.log };
+  const rec = { id: 'g' + Date.now() + Math.random().toString(36).slice(2, 6), ts: Date.now(), mode: g.mode, dur: g.dur, nq: g.nq, time: qm ? +g.elapsed.toFixed(1) : null, ops: g.cfg.ops, score: g.score, max, log: g.log };
   $('endSave').textContent = (await saveGame(rec)) ? 'Saved to history.' : 'Could not save this game to history.';
 }
 
 // ---------- history ----------
 let games = [];
 const OPNAME = { add: '+', sub: '–', mul: '×', div: '÷' };
+const modeStr = g => g.mode === 'questions' ? `Questions · ${g.nq} in ${Number(g.time).toFixed(1)} s` : `Time · ${g.dur} s`;
 const fmtDate = ts => new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 async function openHistory() {
   show('history');
   $('histList').innerHTML = '<p>Loading…</p>';
   games = await loadGames();
   if (!games.length) { $('histList').innerHTML = '<p>No games yet. Games played with Automatic pass unchecked appear here.</p>'; return; }
-  $('histList').innerHTML = '<table class="review" style="margin:0"><thead><tr><th>Date</th><th>Operations</th><th class="n">Duration</th><th class="n">Score</th></tr></thead><tbody>' +
-    games.map((g, i) => `<tr class="game" tabindex="0" data-i="${i}"><td>${esc(fmtDate(g.ts))}</td><td>${esc((g.ops || []).map(o => OPNAME[o] || '').join(' '))}</td><td class="n">${esc(g.dur)} s</td><td class="n">${esc(g.score)} / ${esc(g.max)}</td></tr>`).join('') +
+  $('histList').innerHTML = '<table class="review" style="margin:0"><thead><tr><th>Date</th><th>Operations</th><th>Game mode</th><th class="n">Score</th></tr></thead><tbody>' +
+    games.map((g, i) => `<tr class="game" tabindex="0" data-i="${i}"><td>${esc(fmtDate(g.ts))}</td><td>${esc((g.ops || []).map(o => OPNAME[o] || '').join(' '))}</td><td>${esc(modeStr(g))}</td><td class="n">${esc(g.score)} / ${esc(g.max)}</td></tr>`).join('') +
     '</tbody></table>';
 }
 function openDetail(i) {
   const g = games[i]; if (!g) return;
   const log = Array.isArray(g.log) ? g.log : [];
   $('detScore').textContent = `Score: ${g.score} / ${g.max}`;
-  $('detCounts').textContent = `${fmtDate(g.ts)} · ${g.dur} seconds · ` + counts(log);
+  $('detCounts').textContent = `${fmtDate(g.ts)} · ${modeStr(g)} · ` + counts(log);
   $('detReview').innerHTML = reviewTable(log);
   show('detail');
 }
@@ -283,6 +315,9 @@ $('histBtn').addEventListener('click', openHistory);
 $('quitBtn').addEventListener('click', () => { clearInterval(tick); tick = null; G = null; show('home'); });
 link('backHist', () => show('history'));
 for (const id of ['homeBtn1', 'homeBtn2', 'homeBtn3']) link(id, () => show('home'));
+function syncMode() { const q = $('mode').value === 'questions'; $('nqRow').hidden = !q; $('durRow').hidden = q; }
+$('mode').addEventListener('change', syncMode);
+syncMode();
 syncStart();
 getStore();
 }
