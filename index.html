@@ -80,7 +80,7 @@ tr.game{cursor:pointer}tr.game:hover,tr.game:focus{background:#eee;outline:none}
 <!-- GAME (Zetamac's #game markup) -->
 <div id="game" class="view">
   <span class="left"><button id="quitBtn" type="button">Back</button>&nbsp;&nbsp;Seconds left: <span id="secs">120</span></span>
-  <span class="correct">Score: <span id="score">0</span></span>
+  <span class="correct" id="scoreBox">Score: <span id="score">0</span></span>
   <div class="banner"><span id="prob"></span> = <input id="ans" type="text" autocomplete="off" inputmode="numeric"></div>
 </div>
 
@@ -187,6 +187,7 @@ function start() {
   const dur = parseInt($('dur').value, 10);
   G = { cfg: { ops, r }, auto: $('c-auto').checked, dur, score: 0, log: [], cur: null, endAt: performance.now() + dur * 1000 };
   $('score').textContent = '0';
+  $('scoreBox').style.display = G.auto ? '' : 'none';
   $('secs').textContent = String(dur);
   next();
   show('game');
