@@ -18,7 +18,8 @@ a,a:link,a:visited,a:hover,a:active{color:#0044cc}
 #welcome input[type=submit]{float:right}
 #welcome form::after{content:"";display:table;clear:both}
 dd{margin-bottom:.5em}
-.modes{display:flex;align-items:center;gap:calc(8px/3);margin:14px 0}
+.modes{display:flex;align-items:center;gap:calc(8px/3)}
+.row{margin:0 0 .5em}
 .modeBtn{width:calc(44px/3);height:calc(44px/3);padding:0;display:grid;place-items:center;background:#fff;color:#555;border:calc(1px/3) solid #999;border-radius:calc(6px/3);cursor:pointer;box-sizing:border-box}
 .modeBtn svg{width:calc(26px/3);height:calc(26px/3)}
 .modeBtn[aria-pressed=true]{background:#d6e3ff;color:#0044cc;border:calc(2px/3) solid #0044cc}
@@ -67,7 +68,7 @@ tr.game{cursor:pointer}tr.game:hover,tr.game:focus{background:#eee;outline:none}
         <dd>Multiplication problems in reverse.<br>Range: (<input type="text" id="div-a1" value="2"> to <input type="text" id="div-a2" value="12">) × (<input type="text" id="div-b1" value="2"> to <input type="text" id="div-b2" value="100">)</dd>
 
       </dl>
-      <div class="modes">Game mode:
+      <div class="modes row">Game mode:
         <input type="hidden" id="mode" value="questions">
         <button type="button" class="modeBtn" data-mode="questions" aria-pressed="true" aria-label="Questions" title="Questions">
           <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8.5 9a3.5 3.5 0 1 1 5 3.2c-.9.4-1.5 1.2-1.5 2.2V15"/><circle cx="12" cy="19" r="0.6" fill="currentColor"/></svg>
@@ -76,13 +77,13 @@ tr.game{cursor:pointer}tr.game:hover,tr.game:focus{background:#eee;outline:none}
           <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
         </button>
       </div>
-      <p id="nqRow">Number of questions:
+      <p id="nqRow" class="row">Number of questions:
         <select id="nq">
           <option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="40">40</option><option value="50">50</option>
           <option value="60">60</option><option value="70">70</option><option value="80">80</option><option value="90">90</option><option selected value="100">100</option>
         </select>
       </p>
-      <p id="durRow" hidden>Duration:
+      <p id="durRow" class="row" hidden>Duration:
         <select id="dur">
           <option value="30">30 seconds</option>
           <option value="60">60 seconds</option>
@@ -91,7 +92,7 @@ tr.game{cursor:pointer}tr.game:hover,tr.game:focus{background:#eee;outline:none}
           <option value="600">600 seconds</option>
         </select>
       </p>
-      <p><label><input id="c-auto" type="checkbox"> Automatic pass</label></p>
+      <p class="row"><label><input id="c-auto" type="checkbox"> Automatic pass</label></p>
       <input type="submit" id="startBtn" value="Start">
     </form>
   </div>
